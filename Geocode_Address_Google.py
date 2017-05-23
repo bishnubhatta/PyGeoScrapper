@@ -1,22 +1,71 @@
 class pygeomaps:
     def __init__(self):
-        self.lat=[]
-        self.lon=[]
-        self.geocode_result=[]
+        self.lat=0.0
+        self.lon=0.0
+        self.radius=0
+        self.addr=''
+        self.placeid=''
+        self.circle_colour='#ffcc99'
 
-    def find_distance_between_lat_lon(self,lat1,lat2,lon1,lon2):
+    def find_distance_between_two_location(self,lat1,lon1,lat2,lon2):
         import math
-        d= math.acos(math.sin(math.radians(lat1)) * math.sin(math.radians(lat2)) + math.cos(math.radians(lat1)) *
-                     math.cos(math.radians((lat2))) * math.cos(math.radians(lon1) - math.radians(lon2)))
-        #To search by miles instead of kilometers, replace 6371 with 3959
-        distance = 6371*d
+        d = math.acos(math.sin(math.radians(lat1)) * math.sin(math.radians(lat2)) + math.cos(math.radians(lat1)) *
+                      math.cos(math.radians((lat2))) * math.cos(math.radians(lon1) - math.radians(lon2)))
+        # To search by miles instead of kilometers, replace 6378.8 with 3963.6
+        distance = 6378.8 * float(d)
         return distance
+
+    def get_all_lat_lon_from_table(self):
+        from mysql.connector import MySQLConnection,Error
+        ret_list = []
+        try:
+            conn = MySQLConnection(host='localhost', database='mysql', user='root', password='password')
+            cursor = conn.cursor()
+            cursor.execute("SELECT SCRUB_ADDR,LATITUDE,LONGITUDE FROM train_set.geo_scrub_addr where SCRUB_STS=%s "
+                           "and SCRUB_TYPE in (%s,%s,%s)",['OK','ROOFTOP','RANGE_INTERPOLATED','GEOMETRIC_CENTER'])
+            for (scrub_addr,latitude,longitude) in cursor:
+                ret_list.append([scrub_addr,latitude,longitude])
+        except Error as e:
+            print(e)
+        finally:
+            cursor.close()
+            conn.close()
+            return ret_list
+
+
+    def find_all_addresses_with_in_x_km_radius_of_y(self,y,x):
+        try:
+            import math
+            input_addr=y
+            self.radius=x
+            gcode_input_addr=self.geocode_address(input_addr)
+            lat1 = gcode_input_addr[6]
+            lon1= gcode_input_addr[7]
+            final_data_list = []
+            #Get all lat lon from table
+            ret_list=self.get_all_lat_lon_from_table()
+            for list in range(len(ret_list)):
+                addr=ret_list[list][0]
+                lat2=float(ret_list[list][1])
+                lon2=float(ret_list[list][2])
+                distance = self.find_distance_between_two_location(lat1,lon1,lat2,lon2)
+                if distance <= self.radius:
+                    final_data_list.append(ret_list[list])
+            return final_data_list
+        except Exception, e:
+            print(str(e))
 
     def plot_addresses_on_google_map(self,lat,lon):
         import gmplot
-        gmap = gmplot.GoogleMapPlotter(lat[0], lon[0],16)
-        gmap.plot(self.lat, self.lon, '#FF0000', edge_width=5)
-        gmap.heatmap(self.lat, self.lon,threshold=20,radius=20)
+        # unit of radius in gmplot is meter. so it assumes KM passed as meter.So multiply by 1000
+        gmap = gmplot.GoogleMapPlotter(self.lat,self.lon,16)
+        gmap.coloricon = "http://www.googlemapsmarkers.com/v1/%s/"
+        #gmap.plot(lat, lon, 'cornflowerblue', edge_width=10)
+        gmap.scatter(lat, lon, '#0066ff', edge_width=10)
+        #gmap.heatmap(lat, lon,threshold=90,radius=10)
+        print self.addr
+        gmap.marker(self.lat,self.lon,color='#FF0000',title=self.addr)
+        gmap.circle(self.lat,self.lon,self.radius*1000,color=self.circle_colour)
         output = "C:/GeoPy/mymap.html"
         gmap.draw(output)
 
@@ -28,7 +77,6 @@ class pygeomaps:
         address=urllib.quote_plus(addr)
         wiki = "http://maps.googleapis.com/maps/api/geocode/xml?address=" + address
         geocode_result=[]
-        print wiki
 
         #Query the website and return the data and parse the xml using untangle
         page = urllib2.urlopen(wiki)
@@ -89,10 +137,12 @@ class pygeomaps:
             geocode_result.append(vp_lat_northeast)
             geocode_result.append(vp_lon_northeast)
             geocode_result.append(place_id)
+            # Set the global variable to use as center during map plotting
+            self.lat=round(lat,6)
+            self.lon=round(lon,6)
+            self.addr = scrb_addr
+            self.placeid = place_id
             return geocode_result
-            #confirmation = raw_input("Plot thhe address on map?(y/n)")
-            #if(confirmation=="y"):
-                #self.plot_on_google_map(lat,lon,place_id)
         else:
             geocode_result.append(addr)
             geocode_result.append(scrb_sts)
@@ -107,6 +157,8 @@ class pygeomaps:
             geocode_result.append(0.0)
             geocode_result.append(0.0)
             geocode_result.append('NOK')
+            self.lat = 0.0
+            self.lon = 0.0
             return geocode_result
 
 
@@ -119,7 +171,6 @@ class pygeomaps:
             cursor.execute("SELECT COMPANY_ADDR FROM train_set.company_info where IS_SCRUBBED IS NULL")
             #cursor returns a tuple
             for (row,) in cursor:
-                #print row
                 addr_list.append(row)
         except Error as e:
             print(e)
@@ -134,7 +185,6 @@ class pygeomaps:
         query = "INSERT INTO " \
         "train_set.geo_scrub_addr(RAW_ADDR,SCRUB_STS,ADDR_TYPE,SCRUB_TYPE,SCRUB_ADDR,REQUEST_LINK,LATITUDE,LONGITUDE," \
         "SWLATITUDE,SWLONGITUDE,NELATITUDE,NELONGITUDE,G_PLACE_ID) values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
-        #args = (gr[0],gr[1],gr[2],gr[3],gr[4],gr[5],gr[6],gr[7],gr[8],gr[9],gr[10],gr[11],gr[12])
         try:
             conn = MySQLConnection(host='localhost', database='mysql', user='root', password='password')
             cursor = conn.cursor()
@@ -150,16 +200,29 @@ class pygeomaps:
 
 
 pgm = pygeomaps()
-link_list = pgm.read_addresses_to_process()
-if len(link_list) == 0:
-    print "No Records to process in the table."
+user_input=raw_input("What do you want to do?\n\t Press 1 for Geocode addresses from table"
+                     "\n\t Press 2 for Creating a risk circle for any address based on a radius limit"
+                         "\n\t Press any other key to exit\n\t:")
+if user_input=='1':
+    link_list = pgm.read_addresses_to_process()
+    if len(link_list) == 0:
+        print "No Records to process in the table."
+    else:
+        for link in link_list:
+            gr=pgm.geocode_address(link)
+            pgm.insert_geocode_result(gr)
+elif user_input == '2':
+    #Make sure that this address is a valid ROOFTOP address eg: Walmart Store , Dell Office and not some random address
+    # Radius is in KM
+    center_addr=raw_input("\nPlease enter the center address:\n")
+    rad = int(raw_input("\nPlease enter the radius limit in KM:\n"))
+    addr_list = pgm.find_all_addresses_with_in_x_km_radius_of_y(center_addr,rad)
+    lat=[]
+    lon=[]
+    for data in range(len(addr_list)):
+        lat.append(addr_list[data][1])
+        lon.append(addr_list[data][2])
+    pgm.plot_addresses_on_google_map(lat,lon)
 else:
-    for link in link_list:
-        gr=pgm.geocode_address(link)
-        pgm.insert_geocode_result(gr)
-
-#pgm.plot_addresses_on_google_map(pgm.lat,pgm.lon)
-# d=pgm.find_distance_between_lat_lon(36.1137276,36.1378447,-115.1523206,-115.1654364)
-# #2880 S Las Vegas Blvd, Las Vegas, NV 89109, USA
-# #4100 Paradise Rd, Las Vegas, NV 89169, USA
-# print 'Distance is :' + str(d) + " KMs"
+    print "You selected to exit.Have a nice day...."
+    exit()
