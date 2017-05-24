@@ -186,7 +186,7 @@ class pygeomaps:
             addr_list =[]
             conn = MySQLConnection(host='localhost', database='mysql', user='root', password='password')
             cursor = conn.cursor()
-            cursor.execute("SELECT COMPANY_ADDR FROM train_set.company_info where IS_SCRUBBED IS NULL")
+            cursor.execute("SELECT distinct(COMPANY_ADDR) FROM train_set.company_info where IS_SCRUBBED IS NULL")
             #cursor returns a tuple
             for (row) in cursor:
                 addr_list.append(row)
