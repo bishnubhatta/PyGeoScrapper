@@ -105,12 +105,15 @@ class PyScrapper:
 
     def insert_data_into_company_table(self,info):
         from mysql.connector import MySQLConnection,Error
+        import random
         base_uri = []
-        query = "INSERT INTO train_set.company_info(COMPANY_NAME,COMPANY_PHONE,COMPANY_FAX,COMPANY_ADDR) " \
-                "values (%s,%s,%s,%s)"
+        query = "INSERT INTO train_set.company_info(COMPANY_NAME,COMPANY_PHONE,COMPANY_FAX,COMPANY_ADDR,COMPANY_TIV) " \
+                "values (%s,%s,%s,%s,%s)"
         try:
             conn = MySQLConnection(host='localhost', database='mysql', user='root', password='password')
             cursor = conn.cursor()
+            # As it is not possible to get TIV for each company, assign a random amount
+            info.append(random.randint(25000,99999))
             cursor.execute(query,info)
             conn.commit()
         except Error as error:
