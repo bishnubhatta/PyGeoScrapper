@@ -3,6 +3,7 @@ class pygeomaps:
         self.lat=0.0
         self.lon=0.0
         self.radius=0
+        self.final_loc=[]
         self.addr=''
         self.placeid=''
         self.circle_colour='#ffcc99'
@@ -21,10 +22,10 @@ class pygeomaps:
         try:
             conn = MySQLConnection(host='localhost', database='mysql', user='root', password='password')
             cursor = conn.cursor()
-            cursor.execute("SELECT SCRUB_ADDR,LATITUDE,LONGITUDE FROM train_set.geo_scrub_addr where SCRUB_STS=%s "
+            cursor.execute("SELECT SCRUB_ADDR,LATITUDE,LONGITUDE,RAW_ADDR FROM train_set.geo_scrub_addr where SCRUB_STS=%s "
                            "and SCRUB_TYPE in (%s,%s,%s)",['OK','ROOFTOP','RANGE_INTERPOLATED','GEOMETRIC_CENTER'])
-            for (scrub_addr,latitude,longitude) in cursor:
-                ret_list.append([scrub_addr,latitude,longitude])
+            for (scrub_addr,latitude,longitude,raw_addr) in cursor:
+                ret_list.append([scrub_addr,latitude,longitude,raw_addr])
         except Error as e:
             print(e)
         finally:
@@ -32,6 +33,22 @@ class pygeomaps:
             conn.close()
             return ret_list
 
+    def get_tiv_for_addr(self,addr):
+        from mysql.connector import MySQLConnection,Error
+        tiv_amt = 0
+        try:
+            conn = MySQLConnection(host='localhost', database='mysql', user='root', password='password')
+            cursor = conn.cursor()
+            cursor.execute("SELECT sum(COMPANY_TIV),COMPANY_ADDR FROM train_set.COMPANY_INFO "
+                           "where IS_SCRUBBED=%s and COMPANY_ADDR=%s GROUP BY COMPANY_ADDR",['D',addr])
+            (tiv_amt,adr)=cursor.fetchone()
+            #print tiv_amt
+        except Error as e:
+            print(e)
+        finally:
+            cursor.close()
+            conn.close()
+            return tiv_amt
 
     def find_all_addresses_with_in_x_km_radius_of_y(self,y,x):
         try:
@@ -51,6 +68,7 @@ class pygeomaps:
                 distance = self.find_distance_between_two_location(lat1,lon1,lat2,lon2)
                 if distance <= self.radius:
                     final_data_list.append(ret_list[list])
+            self.final_loc = final_data_list
             return final_data_list
         except Exception, e:
             print(str(e))
@@ -63,7 +81,7 @@ class pygeomaps:
         #gmap.plot(lat, lon, 'cornflowerblue', edge_width=10)
         gmap.scatter(lat, lon, '#0066ff', edge_width=10)
         #gmap.heatmap(lat, lon,threshold=90,radius=10)
-        print self.addr
+        print "Center Location for this circle : " + self.addr
         gmap.marker(self.lat,self.lon,color='#FF0000',title=self.addr)
         gmap.circle(self.lat,self.lon,self.radius*1000,color=self.circle_colour)
         output = "C:/GeoPy/mymap.html"
@@ -170,7 +188,7 @@ class pygeomaps:
             cursor = conn.cursor()
             cursor.execute("SELECT COMPANY_ADDR FROM train_set.company_info where IS_SCRUBBED IS NULL")
             #cursor returns a tuple
-            for (row,) in cursor:
+            for (row) in cursor:
                 addr_list.append(row)
         except Error as e:
             print(e)
@@ -219,10 +237,15 @@ elif user_input == '2':
     addr_list = pgm.find_all_addresses_with_in_x_km_radius_of_y(center_addr,rad)
     lat=[]
     lon=[]
-    for data in range(len(addr_list)):
+    total_tiv=0
+    total_locs=len(addr_list)
+    for data in range(total_locs):
         lat.append(addr_list[data][1])
         lon.append(addr_list[data][2])
+        total_tiv = total_tiv+ pgm.get_tiv_for_addr(addr_list[data][3])
     pgm.plot_addresses_on_google_map(lat,lon)
+    print "Total Locations impacted : " + str(total_locs)
+    print "Total TIV : " + str(total_tiv)
 else:
     print "You selected to exit.Have a nice day...."
     exit()
