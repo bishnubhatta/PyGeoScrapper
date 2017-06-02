@@ -226,7 +226,8 @@ if user_input=='1':
     if len(link_list) == 0:
         print "No Records to process in the table."
     else:
-        for link in link_list:
+        for (link,) in link_list:
+            print link
             gr=pgm.geocode_address(link)
             pgm.insert_geocode_result(gr)
 elif user_input == '2':
@@ -239,13 +240,16 @@ elif user_input == '2':
     lon=[]
     total_tiv=0
     total_locs=len(addr_list)
-    for data in range(total_locs):
-        lat.append(addr_list[data][1])
-        lon.append(addr_list[data][2])
-        total_tiv = total_tiv+ pgm.get_tiv_for_addr(addr_list[data][3])
-    pgm.plot_addresses_on_google_map(lat,lon)
-    print "Total Locations impacted : " + str(total_locs)
-    print "Total TIV : " + str(total_tiv)
+    if total_locs > 0:
+        for data in range(total_locs):
+            lat.append(addr_list[data][1])
+            lon.append(addr_list[data][2])
+            total_tiv = total_tiv+ pgm.get_tiv_for_addr(addr_list[data][3])
+        pgm.plot_addresses_on_google_map(lat,lon)
+        print "Total Locations impacted : " + str(total_locs)
+        print "Total TIV : " + str(total_tiv)
+    else:
+        print "Thank God!!! No other existing locations impacted."
 else:
     print "You selected to exit.Have a nice day...."
     exit()
