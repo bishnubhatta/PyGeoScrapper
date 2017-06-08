@@ -8,30 +8,6 @@ class pygeomaps:
         self.placeid=''
         self.circle_colour='#ffcc99'
 
-    def find_distance_between_two_location(self,lat1,lon1,lat2,lon2):
-        import math
-        d = math.acos(math.sin(math.radians(lat1)) * math.sin(math.radians(lat2)) + math.cos(math.radians(lat1)) *
-                      math.cos(math.radians((lat2))) * math.cos(math.radians(lon1) - math.radians(lon2)))
-        # To search by miles instead of kilometers, replace 6378.8 with 3963.6
-        distance = 6378.8 * float(d)
-        return distance
-
-    def get_all_lat_lon_from_table(self):
-        from mysql.connector import MySQLConnection,Error
-        ret_list = []
-        try:
-            conn = MySQLConnection(host='localhost', database='mysql', user='root', password='password')
-            cursor = conn.cursor()
-            cursor.execute("SELECT SCRUB_ADDR,LATITUDE,LONGITUDE,RAW_ADDR FROM train_set.geo_scrub_addr where SCRUB_STS=%s "
-                           "and SCRUB_TYPE in (%s,%s,%s)",['OK','ROOFTOP','RANGE_INTERPOLATED','GEOMETRIC_CENTER'])
-            for (scrub_addr,latitude,longitude,raw_addr) in cursor:
-                ret_list.append([scrub_addr,latitude,longitude,raw_addr])
-        except Error as e:
-            print(e)
-        finally:
-            cursor.close()
-            conn.close()
-            return ret_list
 
     def get_tiv_for_addr(self,addr):
         from mysql.connector import MySQLConnection,Error
@@ -59,33 +35,28 @@ class pygeomaps:
             lat1 = gcode_input_addr[6]
             lon1= gcode_input_addr[7]
             final_data_list = []
-            #Get all lat lon from table
-            ret_list=self.get_all_lat_lon_from_table()
-            for list in range(len(ret_list)):
-                addr=ret_list[list][0]
-                lat2=float(ret_list[list][1])
-                lon2=float(ret_list[list][2])
-                distance = self.find_distance_between_two_location(lat1,lon1,lat2,lon2)
-                if distance <= self.radius:
-                    final_data_list.append(ret_list[list])
-            self.final_loc = final_data_list
+            final_data_list = pgm.get_qualifying_locations(lat1,lon1,self.radius)
             return final_data_list
         except Exception, e:
             print(str(e))
 
-    def plot_addresses_on_google_map(self,lat,lon):
+    #Modify GMPLOT PACKAGE to include address as title for each marker
+    def plot_addresses_on_google_map(self,lat,lon,titles):
         import gmplot
         # unit of radius in gmplot is meter. so it assumes KM passed as meter.So multiply by 1000
         gmap = gmplot.GoogleMapPlotter(self.lat,self.lon,16)
         gmap.coloricon = "http://www.googlemapsmarkers.com/v1/%s/"
         #gmap.plot(lat, lon, 'cornflowerblue', edge_width=10)
-        gmap.scatter(lat, lon, '#0066ff', edge_width=10)
+        gmap.scatter(lat, lon,titles,'#0066ff', edge_width=10)
         #gmap.heatmap(lat, lon,threshold=90,radius=10)
         print "Center Location for this circle : " + self.addr
         gmap.marker(self.lat,self.lon,color='#FF0000',title=self.addr)
         gmap.circle(self.lat,self.lon,self.radius*1000,color=self.circle_colour)
         output = "C:/GeoPy/mymap.html"
         gmap.draw(output)
+
+    def removeNonAscii(self,s):
+        return "".join(filter(lambda x: ord(x) < 128, s))
 
     def geocode_address(self,addr):
         import urllib2,urllib
@@ -105,7 +76,7 @@ class pygeomaps:
         scrb_sts = str(obj.GeocodeResponse.status.cdata).strip()
         if scrb_sts == "OK" :
             if(len(obj.GeocodeResponse.get_elements(name='result'))) == 1:
-                scrb_addr = str(obj.GeocodeResponse.result.formatted_address.cdata)
+                scrb_addr = self.removeNonAscii(obj.GeocodeResponse.result.formatted_address.cdata)
                 type_len = len(obj.GeocodeResponse.result.get_elements(name='type'))
                 if (type_len) == 1:
                     addr_typ = str(obj.GeocodeResponse.result.type.cdata)
@@ -216,11 +187,56 @@ class pygeomaps:
             cursor.close()
             conn.close()
 
+    def get_qualifying_locations(self,center_lat,center_lon,distancekm):
+        from mysql.connector import MySQLConnection, Error
+        import math
+        ret_list = []
+        try:
+            conn = MySQLConnection(host='localhost', database='mysql', user='root', password='password')
+            cursor = conn.cursor()
+            query = "SELECT c.COMPANY_NAME, c.TIV,t.* FROM (SELECT RAW_ADDR,LATITUDE,LONGITUDE," \
+                    "(acos(sin(radians(%s)) * sin(radians(Latitude)) + cos(radians(%s)) * cos(radians((Latitude))) " \
+                    "* cos(radians(%s) - radians(Longitude))) * 6378.137) AS distance " \
+                    "FROM  train_set.geo_scrub_addr where SCRUB_TYPE IN (%s,%s,%s) AND SCRUB_STS=%s) t," \
+                    "(select COMPANY_NAME,COMPANY_ADDR,SUM(COMPANY_TIV) as TIV from " \
+                    "train_set.company_info group by COMPANY_NAME,COMPANY_ADDR) c WHERE t.RAW_ADDR=c.COMPANY_ADDR  " \
+                    "WHERE distance <= %s"
+            cursor.execute(query,[center_lat,center_lat,center_lon,'ROOFTOP','RANGE_INTERPOLATED','GEOMETRIC_CENTER','OK',distancekm])
+            for (company_name,tiv,raw_addr,latitude,longitude,distance) in cursor:
+                ret_list.append([company_name,tiv,raw_addr,latitude,longitude,distance])
+        except Error as e:
+            print(e)
+        finally:
+            cursor.close()
+            conn.close()
+            return ret_list
+
+    def prepare_html_report(self,rpt_data,center_addr):
+        try:
+            HTMLFILE = 'C:/GeoPy/RiskCircle_Report.html'
+            hdr_data=['Company Name','TIV','Address','Latitude','Longitude','Distance']
+            f = open(HTMLFILE, 'w')
+            f.write('<html><body><h1>')
+            f.write('Risk Circle Report for Center :'+ center_addr)
+            f.write('</h1>')
+            f.write('<table border = "1">')
+            f.write('<tr>')
+            for head in hdr_data:
+                f.write('<th>')
+                f.write(head)
+                f.write('</th>')
+            f.write('</tr>')
+            for data in rpt_data:
+                f.write(data)
+        except Exception, e1:
+            print str(e1)
+
 
 pgm = pygeomaps()
 user_input=raw_input("What do you want to do?\n\t Press 1 for Geocode addresses from table"
                      "\n\t Press 2 for Creating a risk circle for any address based on a radius limit"
-                         "\n\t Press any other key to exit\n\t:")
+                         "\n\t Press 3 for geocoding a single random address"
+                        "\n\t Press any other key to exit\n\t:")
 if user_input=='1':
     link_list = pgm.read_addresses_to_process()
     if len(link_list) == 0:
@@ -236,20 +252,30 @@ elif user_input == '2':
     center_addr=raw_input("\nPlease enter the center address:\n")
     rad = int(raw_input("\nPlease enter the radius limit in KM:\n"))
     addr_list = pgm.find_all_addresses_with_in_x_km_radius_of_y(center_addr,rad)
+    #[company_name,tiv,raw_addr,latitude,longitude,distance]
     lat=[]
     lon=[]
+    title=[]
+    rpt_data=[]
     total_tiv=0
     total_locs=len(addr_list)
     if total_locs > 0:
         for data in range(total_locs):
-            lat.append(addr_list[data][1])
-            lon.append(addr_list[data][2])
-            total_tiv = total_tiv+ pgm.get_tiv_for_addr(addr_list[data][3])
-        pgm.plot_addresses_on_google_map(lat,lon)
+            lat.append(addr_list[data][3]) #Lat
+            lon.append(addr_list[data][4]) #Lon
+            title.append(str(addr_list[data][5])) #Distance in km from center
+            #total_tiv = total_tiv+ pgm.get_tiv_for_addr(addr_list[data][3])
+        pgm.plot_addresses_on_google_map(lat,lon,title)
+        pgm.prepare_html_report(addr_list,center_addr)
         print "Total Locations impacted : " + str(total_locs)
-        print "Total TIV : " + str(total_tiv)
+        print "Please check the generated report for details."
     else:
-        print "Thank God!!! No other existing locations impacted."
+        print "No other existing locations impacted"
+elif user_input == '3':
+    result = pgm.geocode_address(" 5687 BRAMBLEWOOD RD., ALTADENA, CA 91001, CALIFORNIA, UNITED STATES")
+    if len(result) !=0:
+        for value in range(len(result)):
+            print result[value]
 else:
     print "You selected to exit.Have a nice day...."
     exit()
