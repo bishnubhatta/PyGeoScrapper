@@ -200,7 +200,7 @@ class pygeomaps:
                     "FROM  train_set.geo_scrub_addr where SCRUB_TYPE IN (%s,%s,%s) AND SCRUB_STS=%s) t," \
                     "(select COMPANY_NAME,COMPANY_ADDR,SUM(COMPANY_TIV) as TIV from " \
                     "train_set.company_info group by COMPANY_NAME,COMPANY_ADDR) c WHERE t.RAW_ADDR=c.COMPANY_ADDR  " \
-                    "WHERE distance <= %s"
+                    "and t.distance <= %s"
             cursor.execute(query,[center_lat,center_lat,center_lon,'ROOFTOP','RANGE_INTERPOLATED','GEOMETRIC_CENTER','OK',distancekm])
             for (company_name,tiv,raw_addr,latitude,longitude,distance) in cursor:
                 ret_list.append([company_name,tiv,raw_addr,latitude,longitude,distance])
@@ -264,15 +264,21 @@ elif user_input == '2':
             lat.append(addr_list[data][3]) #Lat
             lon.append(addr_list[data][4]) #Lon
             title.append(str(addr_list[data][5])) #Distance in km from center
-            #total_tiv = total_tiv+ pgm.get_tiv_for_addr(addr_list[data][3])
+            rpt_data.append("<tr><td>" + str(addr_list[data][0]) +
+                             "</td><td>" + str(addr_list[data][1]) +
+                             "</td><td>" + str(addr_list[data][2]) +
+                             "</td><td>" + str(addr_list[data][3]) +
+                             "</td><td>" + str(addr_list[data][4]) +
+                             "</td><td>" + str(addr_list[data][5]) +
+                             "</tr>")
         pgm.plot_addresses_on_google_map(lat,lon,title)
-        pgm.prepare_html_report(addr_list,center_addr)
+        pgm.prepare_html_report(rpt_data,center_addr)
         print "Total Locations impacted : " + str(total_locs)
         print "Please check the generated report for details."
     else:
         print "No other existing locations impacted"
 elif user_input == '3':
-    result = pgm.geocode_address(" 5687 BRAMBLEWOOD RD., ALTADENA, CA 91001, CALIFORNIA, UNITED STATES")
+    result = pgm.geocode_address("5687 BRAMBLEWOOD RD., ALTADENA, CA 91001, CALIFORNIA, UNITED STATES")
     if len(result) !=0:
         for value in range(len(result)):
             print result[value]
