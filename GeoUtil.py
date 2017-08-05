@@ -499,13 +499,14 @@ elif user_input == '2':
                     img_loc = '.'+pgm.get_street_view_image(str(addr_list[data][2]))
                 else:
                     img_loc = 'https://st.depositphotos.com/1779253/5140/v/950/depositphotos_51407019-stock-illustration-404-error-file-not-found.jpg'
+            image_link = "</td><td> <a href = " + img_loc +"> Image_Link </a>" if image_opt=='1' else "</td><td> No Image "
             rpt_data.append("<tr><td>" + str(addr_list[data][0]) +
                              "</td><td>" + str(addr_list[data][1]) +
                              "</td><td>" + str(addr_list[data][2]) +
                              "</td><td>" + str(addr_list[data][3]) +
                              "</td><td>" + str(addr_list[data][4]) +
                              "</td><td>" + str(addr_list[data][5]) +
-                             "</td><td> <a href = " + img_loc +"> Image_Link </a>" if image_opt=='1' else "</td><td> No Image " +
+                             image_link +
                              "</tr>")
         pgm.rpt_name='risk_circle'
         pgm.plot_addresses_on_google_map(lat,lon,title)
