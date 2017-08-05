@@ -182,7 +182,7 @@ class pygeomaps:
         # optional
         imageurl = self.street_view_image_link + "?size=1200x800&location="+address+"&heading=" +str(heading)+"&pitch=-0.76&key="+ self.api_key
         # change space to underscore and remove , from the address if any
-        final_file=os.path.join(r"/home/bishnu/GeoPy/images/", addr.replace(' ','Z').replace(',','').replace('#','Z')+"_"+str(heading)+".jpg")
+        final_file=os.path.join(r"/home/bishnu/GeoPy/images/", addr.replace(' ','_').replace(',','').replace('#','Z')+"_"+str(heading)+".jpg")
         urllib.urlretrieve(imageurl, final_file)
         return final_file
 
