@@ -505,7 +505,7 @@ elif user_input == '2':
                              "</td><td>" + str(addr_list[data][3]) +
                              "</td><td>" + str(addr_list[data][4]) +
                              "</td><td>" + str(addr_list[data][5]) +
-                             "</td><td> <a href = " + img_loc +"> Image_Link </a>" +
+                             "</td><td> <a href = " + img_loc +"> Image_Link </a>" if image_opt=='1' else "</td><td> No Image " +
                              "</tr>")
         pgm.rpt_name='risk_circle'
         pgm.plot_addresses_on_google_map(lat,lon,title)
