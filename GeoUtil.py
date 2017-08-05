@@ -499,7 +499,7 @@ elif user_input == '2':
                     img_loc = pgm.get_street_view_image(str(addr_list[data][2]))
                 else:
                     img_loc = 'https://st.depositphotos.com/1779253/5140/v/950/depositphotos_51407019-stock-illustration-404-error-file-not-found.jpg'
-            image_link = "</td><td> <a href = " + img_loc +"> Image_Link </a>" if image_opt=='1' else "</td><td> No Image "
+            image_link = "</td><td> <a href = '" + img_loc +"'> ImageLink </a>" if image_opt=='1' else "</td><td> No Image "
             rpt_data.append("<tr><td>" + str(addr_list[data][0]) +
                              "</td><td>" + str(addr_list[data][1]) +
                              "</td><td>" + str(addr_list[data][2]) +
