@@ -184,7 +184,7 @@ class pygeomaps:
         # change space to underscore and remove , from the address if any
         final_file=os.path.join(r"/home/bishnu/GeoPy/images/", addr.replace(' ','_').replace(',','').replace('#','Z')+"_"+str(heading)+".jpg")
         urllib.urlretrieve(imageurl, final_file)
-        return final_file.replace('/home/bishnu/GeoPy','')
+        return final_file
 
     def verify_if_street_view_image_exists(self,addr):
         import urllib,urllib2,json
@@ -477,7 +477,7 @@ elif user_input == '2':
     # Radius is in KM
     center_addr=raw_input("\nPlease enter the center address:\n")
     rad = int(raw_input("\nPlease enter the radius limit in KM:\n"))
-    image_opt=int(raw_input("\nDo you want to get the location images (1/0)?\n"))
+    image_opt=raw_input("\nDo you want to get the location images (1/0)?\n")
     addr_list = pgm.find_all_addresses_with_in_x_km_radius_of_y(center_addr,rad,user_input)
     #[company_name,tiv,raw_addr,latitude,longitude,distance]
     lat=[]
@@ -496,7 +496,7 @@ elif user_input == '2':
                 pgm.cleanup_dir(r"/home/bishnu/GeoPy/images/")
                 status = pgm.verify_if_street_view_image_exists(str(addr_list[data][2]))
                 if status == 'OK':
-                    img_loc = '.'+pgm.get_street_view_image(str(addr_list[data][2]))
+                    img_loc = pgm.get_street_view_image(str(addr_list[data][2]))
                 else:
                     img_loc = 'https://st.depositphotos.com/1779253/5140/v/950/depositphotos_51407019-stock-illustration-404-error-file-not-found.jpg'
             image_link = "</td><td> <a href = " + img_loc +"> Image_Link </a>" if image_opt=='1' else "</td><td> No Image "
