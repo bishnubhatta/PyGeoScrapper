@@ -184,7 +184,7 @@ class pygeomaps:
         # change space to underscore and remove , from the address if any
         final_file=os.path.join(r"/home/bishnu/GeoPy/images/", addr.replace(' ','_').replace(',','').replace('#','Z')+"_"+str(heading)+".jpg")
         urllib.urlretrieve(imageurl, final_file)
-        return final_file.replace('/home/bishnu/GeoPy')
+        return final_file.replace('/home/bishnu/GeoPy','')
 
     def verify_if_street_view_image_exists(self,addr):
         import urllib,urllib2,json
