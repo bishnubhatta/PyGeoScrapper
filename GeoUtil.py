@@ -184,7 +184,7 @@ class pygeomaps:
         # change space to underscore and remove , from the address if any
         final_file=os.path.join(r"/home/bishnu/GeoPy/images/", addr.replace(' ','_').replace(',','').replace('#','Z')+"_"+str(heading)+".jpg")
         urllib.urlretrieve(imageurl, final_file)
-        return final_file
+        return final_file.replace('/home/bishnu/GeoPy')
 
     def verify_if_street_view_image_exists(self,addr):
         import urllib,urllib2,json
@@ -496,7 +496,7 @@ elif user_input == '2':
             if image_opt == '1':
                 status = pgm.verify_if_street_view_image_exists(str(addr_list[data][2]))
                 if status == 'OK':
-                    img_loc = pgm.get_street_view_image(str(addr_list[data][2]))
+                    img_loc = '.' + pgm.get_street_view_image(str(addr_list[data][2]))
                 else:
                     img_loc = 'https://st.depositphotos.com/1779253/5140/v/950/depositphotos_51407019-stock-illustration-404-error-file-not-found.jpg'
             image_link = "</td><td> <a href = '" + img_loc +"'> ImageLink </a>" if image_opt=='1' else "</td><td> No Image "
