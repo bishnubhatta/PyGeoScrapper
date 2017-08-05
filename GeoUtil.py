@@ -58,7 +58,7 @@ class PyScrapper:
             query = "INSERT INTO train_set.scrap_link(LINK,STATE,SCRAP_TM) " \
                     "values (%s,%s,NOW())"
             info = [url,state]
-            conn = MySQLConnection(host='localhost', database='mysql', user='root', password='password')
+            conn = MySQLConnection(host='localhost', database='mysql', user='root', password='bishnu')
             cursor = conn.cursor()
             cursor.execute(query, info)
             conn.commit()
@@ -82,7 +82,7 @@ class PyScrapper:
         from mysql.connector import MySQLConnection,Error
         base_uri = []
         try:
-            conn = MySQLConnection(host='localhost', database='mysql', user='root', password='password')
+            conn = MySQLConnection(host='localhost', database='mysql', user='root', password='bishnu')
             cursor = conn.cursor()
             qry = "SELECT ADDR_BASE_URL FROM train_set.scrap_addr_link where STATE =%s and PROCESS_FLAG = %s limit %s"
             args=[state,'N',limit]
@@ -110,7 +110,7 @@ class PyScrapper:
         query = "INSERT INTO train_set.company_info(COMPANY_NAME,COMPANY_PHONE,COMPANY_FAX,COMPANY_ADDR,COMPANY_TIV) " \
                 "values (%s,%s,%s,%s,%s)"
         try:
-            conn = MySQLConnection(host='localhost', database='mysql', user='root', password='password')
+            conn = MySQLConnection(host='localhost', database='mysql', user='root', password='bishnu')
             cursor = conn.cursor()
             # As it is not possible to get TIV for each company, assign a random amount
             info.append(random.randint(25000,99999))
@@ -126,7 +126,7 @@ class PyScrapper:
     def fetch_already_scrap_link(self,state):
         from mysql.connector import MySQLConnection, Error
         try:
-            conn = MySQLConnection(host='localhost', database='mysql', user='root', password='password')
+            conn = MySQLConnection(host='localhost', database='mysql', user='root', password='bishnu')
             cursor = conn.cursor()
             url_list_st=[]
             qry = "SELECT LINK FROM train_set.scrap_link where STATE=%s"
@@ -147,7 +147,7 @@ class pygeomaps:
     def __init__(self):
         import ConfigParser
         config = ConfigParser.ConfigParser()
-        config.read('C:/GeoPy/GeoPy.conf')
+        config.read('GeoPy.conf')
         self.api_key=config.get('geopy_config', 'api_key')
         self.place_id_search_link=config.get('geopy_config', 'place_id_search_link')
         self.nearby_search_link_location=config.get('geopy_config', 'nearby_search_link_location')
@@ -182,9 +182,9 @@ class pygeomaps:
         # optional
         imageurl = self.street_view_image_link + "?size=1200x800&location="+address+"&heading=" +str(heading)+"&pitch=-0.76&key="+ self.api_key
         # change space to underscore and remove , from the address if any
-        final_file=os.path.join(r"C:\GeoPy\images", addr.replace(' ','_').replace(',','')+"_"+str(heading)+".jpg")
+        final_file=os.path.join(r"/home/bishnu/GeoPy/images/", addr.replace(' ','_').replace(',','').replace('#','Z')+"_"+str(heading)+".jpg")
         urllib.urlretrieve(imageurl, final_file)
-        return final_file
+        return final_file.replace('/home/bishnu/GeoPy','')
 
     def verify_if_street_view_image_exists(self,addr):
         import urllib,urllib2,json
@@ -198,7 +198,7 @@ class pygeomaps:
         from mysql.connector import MySQLConnection,Error
         tiv_amt = 0
         try:
-            conn = MySQLConnection(host='localhost', database='mysql', user='root', password='password')
+            conn = MySQLConnection(host='localhost', database='mysql', user='root', password='bishnu')
             cursor = conn.cursor()
             cursor.execute("SELECT sum(COMPANY_TIV),COMPANY_ADDR FROM train_set.COMPANY_INFO "
                            "where IS_SCRUBBED=%s and COMPANY_ADDR=%s GROUP BY COMPANY_ADDR",['D',addr])
@@ -239,7 +239,7 @@ class pygeomaps:
         gmap.marker(self.lat,self.lon,color='#FF0000',title=self.addr)
         #addListenersOnMarker(title, "http://www.google.com");
         gmap.circle(self.lat,self.lon,self.radius*1000,color=self.circle_colour)
-        output = "C:/GeoPy/"+self.rpt_name+"_gmap.html"
+        output = "/home/bishnu/GeoPy/"+self.rpt_name+"_gmap.html"
         gmap.draw(output)
 
     def generate_static_map_for_location(self,addr,maptype):
@@ -249,7 +249,7 @@ class pygeomaps:
         # optional
         imageurl = self.static_map_link + "?maptype="+maptype+"&center="+address+"&zoom=18&size=1200x800&key=" + self.api_key
         # change space to underscore and remove , from the address if any
-        image = os.path.join(r"C:\GeoPy\images",addr.replace(' ', '_').replace(',', '') + "_" +maptype +"_image.jpg")
+        image = os.path.join(r"/home/bishnu/GeoPy/images/",addr.replace(' ', '_').replace(',', '') + "_" +maptype +"_image.jpg")
         urllib.urlretrieve(imageurl, image)
 
     def generate_map_for_location(self,address):
@@ -262,7 +262,7 @@ class pygeomaps:
         gmap = gmplot.GoogleMapPlotter(self.lat, self.lon, 18)
         gmap.coloricon = "http://www.googlemapsmarkers.com/v1/%s/"
         gmap.marker(self.lat, self.lon, color='#FF0000', title=self.addr)
-        output = "C:/GeoPy/"+self.rpt_name+".html"
+        output = "/home/bishnu/GeoPy/"+self.rpt_name+".html"
         gmap.draw(output)
 
     def removeNonAscii(self,s):
@@ -338,7 +338,7 @@ class pygeomaps:
         from mysql.connector import MySQLConnection,Error
         try:
             addr_list =[]
-            conn = MySQLConnection(host='localhost', database='mysql', user='root', password='password')
+            conn = MySQLConnection(host='localhost', database='mysql', user='root', password='bishnu')
             cursor = conn.cursor()
             cursor.execute("SELECT distinct(COMPANY_ADDR) FROM train_set.company_info where IS_SCRUBBED IS NULL")
             #cursor returns a tuple
@@ -358,7 +358,7 @@ class pygeomaps:
                 "(RAW_ADDR,SCRUB_STS,ADDR_TYPE,SCRUB_TYPE,SCRUB_ADDR,REQUEST_LINK,LATITUDE,LONGITUDE,G_PLACE_ID) " \
                 "values (%s,%s,%s,%s,%s,%s,%s,%s,%s)"
         try:
-            conn = MySQLConnection(host='localhost', database='mysql', user='root', password='password')
+            conn = MySQLConnection(host='localhost', database='mysql', user='root', password='bishnu')
             cursor = conn.cursor()
             cursor.execute(query, gr)
             cursor.execute("UPDATE train_set.company_info set IS_SCRUBBED=%s where COMPANY_ADDR=%s",('D',gr[0]))
@@ -375,7 +375,7 @@ class pygeomaps:
         import math
         ret_list = []
         try:
-            conn = MySQLConnection(host='localhost', database='mysql', user='root', password='password')
+            conn = MySQLConnection(host='localhost', database='mysql', user='root', password='bishnu')
             cursor = conn.cursor()
             query = "SELECT c.COMPANY_NAME, c.TIV,t.* FROM (SELECT RAW_ADDR,LATITUDE,LONGITUDE," \
                     "(acos(sin(radians(%s)) * sin(radians(Latitude)) + cos(radians(%s)) * cos(radians((Latitude))) " \
@@ -435,7 +435,7 @@ class pygeomaps:
 
     def prepare_html_report(self,hdr_data,rpt_data):
         try:
-            HTMLFILE = 'C:/GeoPy/'+ self.rpt_name + '_rpt.html'
+            HTMLFILE = '/home/bishnu/GeoPy/'+ self.rpt_name + '_rpt.html'
             f = open(HTMLFILE, 'w')
             f.write('<html><body><h1>')
             f.write('Report for Center :'+ self.addr)
@@ -485,7 +485,7 @@ elif user_input == '2':
     rpt_data=[]
     total_tiv=0
     total_locs=len(addr_list)
-    pgm.cleanup_dir(r"C:\GeoPy\images")
+    pgm.cleanup_dir(r"/home/bishnu/GeoPy/images/")
     if total_locs > 0:
         for data in range(total_locs):
             lat.append(addr_list[data][3]) #Lat
@@ -493,7 +493,7 @@ elif user_input == '2':
             title.append(str(addr_list[data][5])) #Distance in km from center
             status = pgm.verify_if_street_view_image_exists(str(addr_list[data][2]))
             if status == 'OK':
-                img_loc = pgm.get_street_view_image(str(addr_list[data][2]))
+                img_loc = '.'+pgm.get_street_view_image(str(addr_list[data][2]))
             else:
                 img_loc = 'https://st.depositphotos.com/1779253/5140/v/950/depositphotos_51407019-stock-illustration-404-error-file-not-found.jpg'
             rpt_data.append("<tr><td>" + str(addr_list[data][0]) +
