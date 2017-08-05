@@ -154,6 +154,7 @@ class pygeomaps:
         self.nearby_text_search_link=config.get('geopy_config', 'nearby_text_search_link')
         self.nearby_radar_search_link=config.get('geopy_config', 'nearby_radar_search_link')
         self.street_view_image_link=config.get('geopy_config', 'street_view_image_link')
+        self.static_map_link = config.get('geopy_config', 'static_map_link')
         self.geocode_link=config.get('geopy_config', 'geocode_link')
         self.lat=0.0
         self.lon=0.0
@@ -240,6 +241,16 @@ class pygeomaps:
         gmap.circle(self.lat,self.lon,self.radius*1000,color=self.circle_colour)
         output = "C:/GeoPy/"+self.rpt_name+"_gmap.html"
         gmap.draw(output)
+
+    def generate_static_map_for_location(self,addr,maptype):
+        import urllib, os
+        # Prepare the URL link
+        address = urllib.quote_plus(addr)
+        # optional
+        imageurl = self.static_map_link + "?maptype="+maptype+"&center="+address+"&zoom=18&size=1200x800&key=" + self.api_key
+        # change space to underscore and remove , from the address if any
+        image = os.path.join(r"C:\GeoPy\images",addr.replace(' ', '_').replace(',', '') + "_" +maptype +"_image.jpg")
+        urllib.urlretrieve(imageurl, image)
 
     def generate_map_for_location(self,address):
         import gmplot
@@ -450,6 +461,7 @@ user_input=raw_input("What do you want to do?\n\t Press 1 for Geocode addresses 
                         "\n\t Press 5 for Plotting an address on map"
                         "\n\t Press 6 for scraping website company address data into table"
                         "\n\t Press 7 for image for an address"
+                        "\n\t Press 8 for static map image for an address"
                         "\n\t Press any other key to exit\n\t:")
 if user_input=='1':
     link_list = pgm.read_addresses_to_process()
@@ -571,6 +583,10 @@ elif user_input == '7':
             pgm.get_street_view_image(addr,heading)
     else:
         print 'No image exists for the location'
+elif user_input == '8':
+    address = raw_input("\nPlease enter the address to generate static map:\n")
+    maptype = raw_input("\nPlease enter the map type (roadmap, satellite, hybrid, terrain):\n")
+    pgm.generate_static_map_for_location(address,maptype)
 else:
     print "You selected to exit.Have a nice day...."
     exit()
