@@ -182,7 +182,7 @@ class pygeomaps:
         # optional
         imageurl = self.street_view_image_link + "?size=1200x800&location="+address+"&heading=" +str(heading)+"&pitch=-0.76&key="+ self.api_key
         # change space to underscore and remove , from the address if any
-        final_file=os.path.join(r"/home/bishnu/GeoPy/images/", addr.replace(' ','_').replace(',','').replace('#','Z')+"_"+str(heading)+".jpg")
+        final_file=os.path.join(r"/home/bishnu/GeoPy/images/", addr.replace(' ','Z').replace(',','').replace('#','Z')+"_"+str(heading)+".jpg")
         urllib.urlretrieve(imageurl, final_file)
         return final_file
 
@@ -460,7 +460,7 @@ user_input=raw_input("What do you want to do?\n\t Press 1 for Geocode addresses 
                         "\n\t Press 4 for finding places of interest around a specific address"
                         "\n\t Press 5 for Plotting an address on map"
                         "\n\t Press 6 for scraping website company address data into table"
-                        "\n\t Press 7 for image for an address"
+                        "\n\t Press 7 for 360 Degree image for an address"
                         "\n\t Press 8 for static map image for an address"
                         "\n\t Press any other key to exit\n\t:")
 if user_input=='1':
@@ -486,6 +486,7 @@ elif user_input == '2':
     rpt_data=[]
     total_tiv=0
     total_locs=len(addr_list)
+    pgm.cleanup_dir(r"/home/bishnu/GeoPy/images/")
     if total_locs > 0:
         for data in range(total_locs):
             lat.append(addr_list[data][3]) #Lat
@@ -493,7 +494,6 @@ elif user_input == '2':
             title.append(str(addr_list[data][5])) #Distance in km from center
             img_loc=' '
             if image_opt == '1':
-                pgm.cleanup_dir(r"/home/bishnu/GeoPy/images/")
                 status = pgm.verify_if_street_view_image_exists(str(addr_list[data][2]))
                 if status == 'OK':
                     img_loc = pgm.get_street_view_image(str(addr_list[data][2]))
