@@ -477,6 +477,7 @@ elif user_input == '2':
     # Radius is in KM
     center_addr=raw_input("\nPlease enter the center address:\n")
     rad = int(raw_input("\nPlease enter the radius limit in KM:\n"))
+    image_opt=int(raw_input("\nDo you want to get the location images (1/0)?\n"))
     addr_list = pgm.find_all_addresses_with_in_x_km_radius_of_y(center_addr,rad,user_input)
     #[company_name,tiv,raw_addr,latitude,longitude,distance]
     lat=[]
@@ -485,17 +486,19 @@ elif user_input == '2':
     rpt_data=[]
     total_tiv=0
     total_locs=len(addr_list)
-    pgm.cleanup_dir(r"/home/bishnu/GeoPy/images/")
     if total_locs > 0:
         for data in range(total_locs):
             lat.append(addr_list[data][3]) #Lat
             lon.append(addr_list[data][4]) #Lon
             title.append(str(addr_list[data][5])) #Distance in km from center
-            status = pgm.verify_if_street_view_image_exists(str(addr_list[data][2]))
-            if status == 'OK':
-                img_loc = '.'+pgm.get_street_view_image(str(addr_list[data][2]))
-            else:
-                img_loc = 'https://st.depositphotos.com/1779253/5140/v/950/depositphotos_51407019-stock-illustration-404-error-file-not-found.jpg'
+            img_loc=' '
+            if image_opt == '1':
+                pgm.cleanup_dir(r"/home/bishnu/GeoPy/images/")
+                status = pgm.verify_if_street_view_image_exists(str(addr_list[data][2]))
+                if status == 'OK':
+                    img_loc = '.'+pgm.get_street_view_image(str(addr_list[data][2]))
+                else:
+                    img_loc = 'https://st.depositphotos.com/1779253/5140/v/950/depositphotos_51407019-stock-illustration-404-error-file-not-found.jpg'
             rpt_data.append("<tr><td>" + str(addr_list[data][0]) +
                              "</td><td>" + str(addr_list[data][1]) +
                              "</td><td>" + str(addr_list[data][2]) +
