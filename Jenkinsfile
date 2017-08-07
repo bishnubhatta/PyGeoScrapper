@@ -3,14 +3,14 @@ pipeline {
   stages {
     stage('Code Review') {
       steps {
-        sh '. ./python_code_review.ksh'
+        sh '/bin/ksh python_code_review.ksh'
       }
     }
     stage('Archive Logs') {
       steps {
         parallel(
           "Archive Logs": {
-            sh '. ./archive_log_files.ksh'
+            sh '/bin/ksh archive_log_files.ksh'
             
           },
           "Code review completion notification": {
