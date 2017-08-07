@@ -4,7 +4,7 @@ do
 log_file_base=`echo $i|sed 's/\.py//g'`
 log_file=$log_file_base'.log'
 >$log_file
-pylint $i >> $log_file
+pylint --rcfile=pylintrc $i >> $log_file
 >$log_file_base'.final'
 grep ^C: $log_file >> $log_file_base'.final'
 grep ^W: $log_file >> $log_file_base'.final'
