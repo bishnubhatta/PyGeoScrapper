@@ -1,5 +1,6 @@
 class pygeomaps:
     def __init__(self):
+        import ConfigParser
         self.lat=0.0
         self.lon=0.0
         self.radius=0
@@ -7,6 +8,9 @@ class pygeomaps:
         self.addr=''
         self.placeid=''
         self.circle_colour='#ffcc99'
+        config = ConfigParser.ConfigParser()
+        config.read("GeoPy.conf")
+        self.api_key=config.get('geopy_config', 'api_key')
 
 
     def get_tiv_for_addr(self,addr):
@@ -64,7 +68,7 @@ class pygeomaps:
 
         #Prepare the URL link
         address=urllib.quote_plus(addr)
-        wiki = "http://maps.googleapis.com/maps/api/geocode/xml?address=" + address
+        wiki = "http://maps.googleapis.com/maps/api/geocode/xml?address=" + address + "key=" + self.api_key
         geocode_result=[]
 
         #Query the website and return the data and parse the xml using untangle
